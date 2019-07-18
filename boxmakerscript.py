@@ -99,19 +99,15 @@ def boxbuilder(height, width, depth, plane, shell_thickness):
     body1 = extrude1.bodies.item(0)
     body1.name = 'boxtest1'
 
-    # construction plane to split box
-    # todo change to midplane
-    face = body1.faces.item(0)
+    # construction plane to split box horizontally
+    # face = body1.faces.item(0)
     planes = rootComp.constructionPlanes
     planeInput = planes.createInput()
-
-    offsetDist = adsk.core.ValueInput.createByReal(-height / 2)
-
-    # planeInput.setByOffset(face, offsetDist)
     planeInput.setByTwoPlanes(body1.faces.item(0), body1.faces.item(2))
     split_plane = planes.add(planeInput)
     split_plane.name = 'splitplane'
 
+    # construction plane in middle of box vertical
     planeInput.setByTwoPlanes(body1.faces.item(5), body1.faces.item(4))
     hinge_plane = planes.add(planeInput)
     hinge_plane.name = 'hinge_plane'
@@ -171,7 +167,7 @@ def boxbuilder(height, width, depth, plane, shell_thickness):
     # Create the extrusion
     extrude3 = extrudes.add(extrudeInput)
     hinge1_body = extrude3.bodies.item(0)
-    hinge1_body.name = "hinge1"
+    hinge1_body.name = "hingetop1"
 
     # extrude second hinge from hinge1 face4
     mm10 = adsk.core.ValueInput.createByString("10 mm")
@@ -181,14 +177,15 @@ def boxbuilder(height, width, depth, plane, shell_thickness):
     # Create the extrusion
     extrude3 = extrudes.add(extrudeInput)
     hinge2_body = extrude3.bodies.item(0)
-    hinge2_body.name = "hinge2"
+    hinge2_body.name = "hingetop2"
 
     # todo maybe create hinges with pattern on path ?
 
     # Create input entities for mirror feature
     inputEntites = adsk.core.ObjectCollection.create()
-    inputEntites.add(hinge1_body)
-    inputEntites.add(hinge2_body)
+    for all_bodies in rootComp.bRepBodies:
+        if "hingetop" in all_bodies.name:
+            inputEntites.add(all_bodies)
 
     # Create the input for mirror feature
     mirrorFeatures = features.mirrorFeatures
@@ -197,11 +194,9 @@ def boxbuilder(height, width, depth, plane, shell_thickness):
     # Create the mirror feature
     mirrorFeature = mirrorFeatures.add(mirrorInput)
     hinge3_body = mirrorFeature.bodies.item(0)
-    hinge3_body.name = "hinge3"
+    hinge3_body.name = "hingetop3"
     hinge4_body = mirrorFeature.bodies.item(1)
-    hinge4_body.name = "hinge4"
-    #    hinge_bottom2 = mirrorFeature.bodies.item(0)
-    #    hinge_bottom2.name ="hingebottom2"
+    hinge4_body.name = "hingetop4"
 
     # sketch for hinges on bottom
     # todo get offset and size from userinput
@@ -249,17 +244,12 @@ def boxbuilder(height, width, depth, plane, shell_thickness):
     point2 = hinge_bottomline.startSketchPoint.geometry.y
     hinge_nextpoint = adsk.core.Point3D.create(point1, point2, 0)
     hinge_sideline2 = sketchlines.addByTwoPoints(hinge_firstPoint, hinge_nextpoint)
-    # hinge_sideline2.attributes.item(0).name = "testing123123123"
+
     # extrude bottom hinges
     profile_collection = adsk.core.ObjectCollection.create()
     profile_collection.add(hinge_sketch.profiles.item(1))
     profile_collection.add(hinge_sketch.profiles.item(2))
-    # hinge_sketch.
-    #    for profile in hinge_sketch.profiles:
-    #        profile_collection.add(profile)
-    # extrudes = component.features.extrudeFeatures
-    # adsk.fusion.FeatureOperations.NewBodyFeatureOperation
-    # adsk.fusion.ExtentDirections.NegativeExtentDirection
+
     ext_input = extrudes.createInput(profile_collection, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
     # todo get distance from userinput
     distance_input = adsk.core.ValueInput.createByReal(1.0)
@@ -285,18 +275,18 @@ def boxbuilder(height, width, depth, plane, shell_thickness):
     # join hinges 1 -4 with lid_body
     # todo fix this somehow....
     ToolBodies = adsk.core.ObjectCollection.create()
-    ToolBodies.add(hinge1_body)
-    ToolBodies.add(hinge2_body)
-    ToolBodies.add(hinge3_body)
-    ToolBodies.add(hinge4_body)
+    for all_bodies in rootComp.bRepBodies:
+        if "hingetop" in all_bodies.name:
+            ToolBodies.add(all_bodies)
     combineInput = features.combineFeatures.createInput(lid_body, ToolBodies)
     combineInput.isNewComponent = False
     lidcombined = features.combineFeatures.add(combineInput)
 
     #  join hinges on bottom with bottom_body
     ToolBodies = adsk.core.ObjectCollection.create()
-    ToolBodies.add(hinge_bottom1_body)
-    ToolBodies.add(hinge_bottom2)
+    for all_bodies in rootComp.bRepBodies:
+        if "hingebottom" in all_bodies.name:
+            ToolBodies.add(all_bodies)
     combineInput = features.combineFeatures.createInput(bottom_body, ToolBodies)
     combineInput.isNewComponent = False
     lidcombined = features.combineFeatures.add(combineInput)
